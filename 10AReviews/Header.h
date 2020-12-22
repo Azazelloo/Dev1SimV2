@@ -72,7 +72,7 @@ int Init10A() {
 		std::cout << "---Error: setting not complete!" << std::endl;
 	}
 
-	//______Инициализация 10А
+	//_____Инициализация 10А
 	uint16_t sendRcv[16] = { 0 };
 	err = OUtoKK(sendRcv, 5, 1,2); //проверка экспресс диагностики
 								   //начинаем читать со 2 слова
