@@ -1,4 +1,4 @@
-#pragma once
+п»ї#pragma once
 
 #include <iostream>
 #include <thread>
@@ -18,32 +18,34 @@
 #define GoodRN10H 0x001E
 #define GoodRNVULC 0xF000
 #define CMR 0.01171875
-#define VALFORM1 17		//количество слов отправляемых в прибор (согласно протоколу)
-#define VALFORM2 25		//количество слов принимаемых из прибора (согласно протоколу)
+#define VALFORM1 17		//РєРѕР»РёС‡РµСЃС‚РІРѕ СЃР»РѕРІ РѕС‚РїСЂР°РІР»СЏРµРјС‹С… РІ РїСЂРёР±РѕСЂ (СЃРѕРіР»Р°СЃРЅРѕ РїСЂРѕС‚РѕРєРѕР»Сѓ)
+#define VALFORM2 25		//РєРѕР»РёС‡РµСЃС‚РІРѕ СЃР»РѕРІ РїСЂРёРЅРёРјР°РµРјС‹С… РёР· РїСЂРёР±РѕСЂР° (СЃРѕРіР»Р°СЃРЅРѕ РїСЂРѕС‚РѕРєРѕР»Сѓ)
+#define kvant 300
 
 
 using namespace std::chrono_literals;
 
-HANDLE hBcEvent; //обработчик событий
+HANDLE hBcEvent; //РѕР±СЂР°Р±РѕС‚С‡РёРє СЃРѕР±С‹С‚РёР№
 TTmkEventData tmkEvD;
 
-size_t bcnum = 0, //база
-	   addrOU = 1; //контроллер канала
+size_t bcnum = 0, //Р±Р°Р·Р°
+	   addrOU = 1; //РєРѕРЅС‚СЂРѕР»Р»РµСЂ РєР°РЅР°Р»Р°
 
 uint16_t dataExchange[VALFORM1] = { 0 };
 uint16_t dataExchangeRet[VALFORM2] = { 0 };
 std::map<int,std::vector<uint16_t>> formsReviews;
 
-uint16_t freqWord = 0x0FFF; //частота
+uint16_t freqWord = 0x0FFF; //С‡Р°СЃС‚РѕС‚Р°
+size_t revCounter = 0;
 
 
 int Init10A();
-int OUtoKK(uint16_t* word, size_t subAddr, size_t numWords);
-int KKtoOU(uint16_t* word, size_t subAddr, size_t numWords);
+int OUtoKK(uint16_t* word, unsigned short subAddr, unsigned short numWords, unsigned short startWord);
+int KKtoOU(uint16_t* word, unsigned short subAddr, unsigned short numWords);
 int SingleExchange();
 
 
-//______инициализация 10А
+//______РёРЅРёС†РёР°Р»РёР·Р°С†РёСЏ 10Рђ
 int Init10A() {
 	int err = 0;
 
@@ -56,12 +58,12 @@ int Init10A() {
 
 	err = tmkconfig(bcnum);
 
-	err = bcreset(); // обнуляем биты
+	err = bcreset(); // РѕР±РЅСѓР»СЏРµРј Р±РёС‚С‹
 
-	hBcEvent = CreateEvent(NULL, TRUE, FALSE, NULL);//создаем событие для прерываний
-	tmkdefevent(hBcEvent, TRUE); //устанавливаем событие для прерываний
+	hBcEvent = CreateEvent(NULL, TRUE, FALSE, NULL);//СЃРѕР·РґР°РµРј СЃРѕР±С‹С‚РёРµ РґР»СЏ РїСЂРµСЂС‹РІР°РЅРёР№
+	tmkdefevent(hBcEvent, TRUE); //СѓСЃС‚Р°РЅР°РІР»РёРІР°РµРј СЃРѕР±С‹С‚РёРµ РґР»СЏ РїСЂРµСЂС‹РІР°РЅРёР№
 	ResetEvent(hBcEvent);
-	err = bcdefirqmode(0x00000000); //все прерывания разрешены
+	err = bcdefirqmode(0x00000000); //РІСЃРµ РїСЂРµСЂС‹РІР°РЅРёСЏ СЂР°Р·СЂРµС€РµРЅС‹
 
 	if (!err) {
 		std::cout << "---Setting complete!" << std::endl;
@@ -70,9 +72,10 @@ int Init10A() {
 		std::cout << "---Error: setting not complete!" << std::endl;
 	}
 
-	//______Инициализация 10А
+	//______РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ 10Рђ
 	uint16_t sendRcv[16] = { 0 };
-	err = OUtoKK(sendRcv, 5, 1); //проверка экспресс диагностики
+	err = OUtoKK(sendRcv, 5, 1,2); //РїСЂРѕРІРµСЂРєР° СЌРєСЃРїСЂРµСЃСЃ РґРёР°РіРЅРѕСЃС‚РёРєРё
+								   //РЅР°С‡РёРЅР°РµРј С‡РёС‚Р°С‚СЊ СЃРѕ 2 СЃР»РѕРІР°
 	if (!err && sendRcv[0] == 1) {
 		std::cout << "---Express diagnostic complete!" << std::endl;
 	}
@@ -80,16 +83,16 @@ int Init10A() {
 		std::cout << "---Error: express diagnostic not complete!" << std::endl;
 	}
 
-	//команда на инициализацию
+	//РєРѕРјР°РЅРґР° РЅР° РёРЅРёС†РёР°Р»РёР·Р°С†РёСЋ
 	sendRcv[0] = 0x01F5;
 	err = KKtoOU(sendRcv, 4, 1);
 	std::cout << "Waiting initialization..." << std::endl;
-	std::this_thread::sleep_for(4s);//ожидание после инициализации не менее 3х секунд
+	std::this_thread::sleep_for(4s);//РѕР¶РёРґР°РЅРёРµ РїРѕСЃР»Рµ РёРЅРёС†РёР°Р»РёР·Р°С†РёРё РЅРµ РјРµРЅРµРµ 3С… СЃРµРєСѓРЅРґ
 
 	if (!err) {
-		addrOU = 12; //согласно протоколу, адрес прибора меняется на 14(в восьмеричной системе)
+		addrOU = 12; //СЃРѕРіР»Р°СЃРЅРѕ РїСЂРѕС‚РѕРєРѕР»Сѓ, Р°РґСЂРµСЃ РїСЂРёР±РѕСЂР° РјРµРЅСЏРµС‚СЃСЏ РЅР° 14(РІ РІРѕСЃСЊРјРµСЂРёС‡РЅРѕР№ СЃРёСЃС‚РµРјРµ)
 		for (int i = 0; i < 5; i++) {
-			OUtoKK(sendRcv, 2, 2);
+			OUtoKK(sendRcv, 2, 2,2); //РЅР°С‡РёРЅР°РµРј С‡РёС‚Р°С‚СЊ СЃРѕ 2 СЃР»РѕРІР°
 			if ((sendRcv[0] & GoodRN10H) && (sendRcv[1] & GoodRNVULC)) {
 				std::cout << "---Initialization complete!" << std::endl;
 				break;
@@ -106,15 +109,15 @@ int Init10A() {
 	return err;
 }
 
-//_____отправляем массив на манчестер
-int OUtoKK(uint16_t* word, size_t subAddr, size_t numWords) {
+//_____РѕС‚РїСЂР°РІР»СЏРµРј РјР°СЃСЃРёРІ РЅР° РјР°РЅС‡РµСЃС‚РµСЂ
+int OUtoKK(uint16_t* word, unsigned short subAddr, unsigned short numWords, unsigned short startWord) {
 	bcdefbase(0);
 	bcputw(0, CW(addrOU, RT_TRANSMIT, subAddr, numWords));
 	bcstart(0, DATA_RT_BC);
 
-	WaitForSingleObject(hBcEvent, INFINITE); //ждем прерывания
-	bcgetblk(2, word, numWords); // читаем со второго слова
-	ResetEvent(hBcEvent);// обновляем событие
+	WaitForSingleObject(hBcEvent, INFINITE); //Р¶РґРµРј РїСЂРµСЂС‹РІР°РЅРёСЏ
+	bcgetblk(startWord, word, numWords); // С‡РёС‚Р°РµРј СЃРѕ РІС‚РѕСЂРѕРіРѕ СЃР»РѕРІР°
+	ResetEvent(hBcEvent);// РѕР±РЅРѕРІР»СЏРµРј СЃРѕР±С‹С‚РёРµ
 
 	tmkgetevd(&tmkEvD);
 	if (!tmkEvD.bc.wResult) {
@@ -124,14 +127,14 @@ int OUtoKK(uint16_t* word, size_t subAddr, size_t numWords) {
 	return 1;
 }
 
-//_____принимаем массив с манчестера
-int KKtoOU(uint16_t* word, size_t subAddr, size_t numWords) {
+//_____РїСЂРёРЅРёРјР°РµРј РјР°СЃСЃРёРІ СЃ РјР°РЅС‡РµСЃС‚РµСЂР°
+int KKtoOU(uint16_t* word, unsigned short subAddr, unsigned short numWords) {
 	bcdefbase(0);
 	bcputw(0, CW(addrOU, RT_RECEIVE, subAddr, numWords));
 	bcputblk(1, word, numWords);
 	bcstart(0, DATA_BC_RT);
 
-	WaitForSingleObject(hBcEvent, INFINITE); //ждем прерывания
+	WaitForSingleObject(hBcEvent, INFINITE); //Р¶РґРµРј РїСЂРµСЂС‹РІР°РЅРёСЏ
 	ResetEvent(hBcEvent);
 
 	tmkgetevd(&tmkEvD);
@@ -142,14 +145,44 @@ int KKtoOU(uint16_t* word, size_t subAddr, size_t numWords) {
 	return 1;
 }
 
-//_____одиночный обмен
+//_____РѕРґРёРЅРѕС‡РЅС‹Р№ РѕР±РјРµРЅ
 int SingleExchange() {
 	int err = 0;
-	err = KKtoOU(dataExchange, 2, VALFORM1); //записываем 17 слов во второй подадрес
+	err = KKtoOU(dataExchange, 2, VALFORM1); //Р·Р°РїРёСЃС‹РІР°РµРј 17 СЃР»РѕРІ РІРѕ РІС‚РѕСЂРѕР№ РїРѕРґР°РґСЂРµСЃ
 
-	err = KKtoOU(&freqWord, 1, 1); //передаем сигнал тактовой частоты
+	err = KKtoOU(&freqWord, 1, 1); //РїРµСЂРµРґР°РµРј СЃРёРіРЅР°Р» С‚Р°РєС‚РѕРІРѕР№ С‡Р°СЃС‚РѕС‚С‹
 
-	err = OUtoKK(dataExchangeRet, 3, VALFORM2); //принимаем 25 слов с третьего подадреса
-
+	err = OUtoKK(dataExchangeRet, 3, VALFORM2,2); //РїСЂРёРЅРёРјР°РµРј 25 СЃР»РѕРІ СЃ С‚СЂРµС‚СЊРµРіРѕ РїРѕРґР°РґСЂРµСЃР°
+												  //РЅР°С‡РёРЅР°РµРј С‡РёС‚Р°С‚СЊ СЃРѕ 2 СЃР»РѕРІР°
 	return err;
+}
+
+//_____Р»РѕРіРёСЂСѓРµРј СЂРµР·СѓР»СЊС‚Р°С‚С‹ РѕР±Р·РѕСЂРѕРІ
+bool GetReview(std::ofstream& out) {
+
+	int err = 0;
+	uint16_t startWord = 2;//РЅР°С‡РёРЅР°РµРј С‡С‚РµРЅРёРµ С„РѕСЂРјСѓР»СЏСЂРѕРІ РёР· 4 РїРѕРґР°РґСЂРµСЃР° СЃРѕ РІС‚РѕСЂРѕРіРѕ СЃР»РѕРІР°
+
+	//____РїСЂРѕРІРµСЂСЏРµРј РЅР°Р»РёС‡РёРµ С„РѕСЂРјСѓР»СЏСЂРѕРІ С†РµР»РµР№
+	if (dataExchangeRet[10]) { //РµСЃР»Рё РµСЃС‚СЊ С„РѕСЂРјСѓР»СЏСЂС‹
+		for (int i = 0; i < dataExchangeRet[10]; i++) {
+			err = OUtoKK(dataExchangeRet, 4, 3, startWord); //РІ СЂРµР¶РёРјРµ РѕР±Р·РѕСЂ 3 СЃР»РѕРІР° РІ С„РѕСЂРјСѓР»СЏСЂРµ
+			formsReviews[i + 1] = std::vector<uint16_t>(dataExchangeRet, dataExchangeRet + 3);
+			startWord += 3;
+		}
+
+		for (auto& form : formsReviews) {
+			out << std::setw(5) << form.first << "\t\t";
+
+			//______РІ РѕР±Р·РѕСЂРµ РІСЃРµРіРґР° С‚СЂРё СЃР»РѕРІР° (РґР°Р»СЊРЅРѕСЃС‚СЊ, СѓРіРѕР» РЅР°С‡Р°Р»Р°, СѓРіРѕР» РєРѕРЅС†Р°)
+			out << std::setw(10)<<((form.second[0]) >> 4)*kvant + 0 << "\t"; //РґР°Р»СЊРЅРѕСЃС‚СЊ -> СЃРґРІРёРЅСѓС‚РѕРµ СЃР»РѕРІРѕ СѓРјРЅРѕР¶Р°РµРј РЅР° РєРІР°РЅС‚ + РґР°Р»СЊРЅРѕСЃС‚СЊ РЅР°С‡Р°Р»Р° Р·РѕРЅС‹ РѕР±РЅР°СЂСѓР¶РµРЅРёСЏ
+			out << std::setw(10)<<(short)form.second[1] * CMR / 2 << "\t"; //СѓРіРѕР» РЅР°С‡Р°Р»Р°
+			out << std::setw(10)<<(short)form.second[2] * CMR / 2 << "\t"; //СѓРіРѕР» РєРѕРЅС†Р°
+			out << "\n";
+		}
+		out << "\n";
+
+		return true;
+	}
+	return false;
 }

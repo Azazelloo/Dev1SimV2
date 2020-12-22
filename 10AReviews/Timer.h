@@ -1,11 +1,11 @@
-#pragma once
+п»ї#pragma once
 #include "Header.h"
 #include <chrono>
 
 class Timer
 {
 private:
-	// Псевдонимы типов используются для удобного доступа к вложенным типам
+	// РџСЃРµРІРґРѕРЅРёРјС‹ С‚РёРїРѕРІ РёСЃРїРѕР»СЊР·СѓСЋС‚СЃСЏ РґР»СЏ СѓРґРѕР±РЅРѕРіРѕ РґРѕСЃС‚СѓРїР° Рє РІР»РѕР¶РµРЅРЅС‹Рј С‚РёРїР°Рј
 	using clock_t = std::chrono::high_resolution_clock;
 	using second_t = std::chrono::duration<double, std::ratio<1> >;
 
