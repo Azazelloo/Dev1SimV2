@@ -62,11 +62,6 @@ int main() {
 		while (!kbhit()) {
 			if (!SingleExchange()) {
 				std::cout << "---Continuous exchange complete! block: "<<++blockNum<<"\r";
-				
-				//_____выводим принятые 25 слов
-				/*for (int i = 0; i < VALFORM2;i++) {
-					std::cout<<i+1<<" -> "<< dataExchangeRet[i] << std:: endl;
-				}*/
 
 				//____анализ угла отклонения
 				wA= (short)dataExchangeRet[1]*CMR; //угол отклонения луча антенны в горизонтальной плоскости
