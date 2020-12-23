@@ -175,7 +175,7 @@ bool GetReview(std::ofstream& out) {
 			out << std::setw(5) << form.first << "\t\t";
 
 			//______в обзоре всегда три слова (дальность, угол начала, угол конца)
-			out << std::setw(10)<<((form.second[0]) >> 4)*kvant + 0 << "\t"; //дальность -> сдвинутое слово умножаем на квант + дальность начала зоны обнаружения
+			out << std::setw(10)<<((form.second[0]) >> 4)*kvant + dataExchange[5] << "\t"; //дальность -> сдвинутое слово умножаем на квант + дальность начала зоны обнаружения
 			out << std::setw(10)<<(short)form.second[1] * CMR / 2 << "\t"; //угол начала
 			out << std::setw(10)<<(short)form.second[2] * CMR / 2 << "\t"; //угол конца
 			out << "\n";

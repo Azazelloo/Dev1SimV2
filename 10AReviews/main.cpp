@@ -61,7 +61,7 @@ int main() {
 
 		while (!kbhit()) {
 			if (!SingleExchange()) {
-				std::cout << "---Continuous exchange complete! block: "<<++blockNum<<"\r";
+				std::cout << "---Continuous exchange complete! review: "<< revCounter <<"\r";
 
 				//____анализ угла отклонения
 				wA= (short)dataExchangeRet[1]*CMR; //угол отклонения луча антенны в горизонтальной плоскости
