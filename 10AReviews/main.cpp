@@ -1,6 +1,6 @@
 ﻿#include "Header.h"
 
-int main() {
+int main(int argc, char *argv[]) {
 
 	//_______Предварительная настройка Tmk
 	/**/
@@ -52,6 +52,7 @@ int main() {
 	else if (mode==2) {
 
 		//_______инициализация приводов
+		int p_countReviews = atoi(argv[1]);
 		uint16_t tmpRK4 = dataExchange[3];
 		dataExchange[3] ^= 0xA800; //оставляем только привод и порог1
 		SingleExchange();
@@ -59,25 +60,28 @@ int main() {
 		dataExchange[3] = tmpRK4;
 		system("pause"); // пауза для ручной синхронизации
 
-		while (!kbhit()) {
+		while (revCounter< p_countReviews) {
 			if (!SingleExchange()) {
-				std::cout << "---Continuous exchange complete! review: "<< revCounter <<"\r";
+				//std::cout << "---Continuous exchange complete! review: "<< revCounter <<"\r";
 
 				//____анализ угла отклонения
 				wA= (short)dataExchangeRet[1]*CMR; //угол отклонения луча антенны в горизонтальной плоскости
 				wCK=(short)dataExchangeRet[2]*CMR; //угол сканирования
 
+				std::cout << "---wA: " << wA << "\r";
 				//пишем логи углов
 				//std::cout << "wA = " << wA << "\twCK = " << wCK << std::endl;
 				//out<<std::fixed<<std::setprecision(5)<< blockNum << "\t\t" <<t.elapsed()<<"\t\t" << std::setprecision(5) << wA << "\t\t" << wCK << "\n";
 
-				if (wA <= -39 && (!(dataExchange[3]&0x1000))) { //меняем направление движения антенны при достижении крайнего положения
-					out << "Review: "<<++revCounter<<"\n";
-					GetReview(out);
+				if (wA <= -39 && (!(dataExchange[3] & 0x1000))) { //меняем направление движения антенны при достижении крайнего положения
+					out << "Review: "<<revCounter<<"\n";
+					++revCounter;
+					GetReview(out); 
 					dataExchange[3] ^= 0x1000;
 				}
-				if (wA >= 39 && (dataExchange[3] & 0x1000)) { //меняем направление движения антенны при достижении крайнего положения
-					out << "Review: " << ++revCounter << "\n";
+				else if (wA >= 39 && (dataExchange[3] & 0x1000)) { //меняем направление движения антенны при достижении крайнего положения
+					out << "Review: " << revCounter << "\n";
+					++revCounter;
 					GetReview(out);
 					dataExchange[3] ^= 0x1000;
 				}

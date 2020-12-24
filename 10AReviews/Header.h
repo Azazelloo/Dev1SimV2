@@ -33,10 +33,9 @@ size_t bcnum = 0, //база
 
 uint16_t dataExchange[VALFORM1] = { 0 };
 uint16_t dataExchangeRet[VALFORM2] = { 0 };
-std::map<int,std::vector<uint16_t>> formsReviews;
 
 uint16_t freqWord = 0x0FFF; //частота
-size_t revCounter = 0;
+int revCounter = 0;
 
 
 int Init10A();
@@ -161,23 +160,30 @@ int SingleExchange() {
 bool GetReview(std::ofstream& out) {
 
 	int err = 0;
-	uint16_t startWord = 2;//начинаем чтение формуляров из 4 подадреса со второго слова
+	unsigned short subAddr = 4;
+	uint16_t countForms = dataExchangeRet[10]; // считываем количество формуляров целей 
+	uint16_t tmpDataExchange[31];
 
-	//____проверяем наличие формуляров целей
-	if (dataExchangeRet[10]) { //если есть формуляры
-		for (int i = 0; i < dataExchangeRet[10]; i++) {
-			err = OUtoKK(dataExchangeRet, 4, 3, startWord); //в режиме обзор 3 слова в формуляре
-			formsReviews[i + 1] = std::vector<uint16_t>(dataExchangeRet, dataExchangeRet + 3);
-			startWord += 3;
+	if (countForms) { //если есть формуляры 
+
+		std::vector<uint16_t> formsReviews;
+
+		for (int i = 0; i < ((dataExchangeRet[10]*3)/31) ;i++) { //считаем сколько нужно прочитать полных подадресов исходя из количества целей
+			err = OUtoKK(tmpDataExchange, subAddr, 31, 2);
+			++subAddr; //переходим на следующий подадрес
+			formsReviews.insert(formsReviews.end(), tmpDataExchange, tmpDataExchange+31);
 		}
+		//считываем последний неполный подадрес
+		uint16_t countRem = (countForms * 3) - 31 * ((countForms * 3) / 31); //считаем сколько слов не считано
+		err = OUtoKK(tmpDataExchange, subAddr, countRem, 2); 
+		formsReviews.insert(formsReviews.end(), tmpDataExchange, tmpDataExchange + countRem);
 
-		for (auto& form : formsReviews) {
-			out << std::setw(5) << form.first << "\t\t";
-
-			//______в обзоре всегда три слова (дальность, угол начала, угол конца)
-			out << std::setw(10)<<((form.second[0]) >> 4)*kvant + dataExchange[5] << "\t"; //дальность -> сдвинутое слово умножаем на квант + дальность начала зоны обнаружения
-			out << std::setw(10)<<(short)form.second[1] * CMR / 2 << "\t"; //угол начала
-			out << std::setw(10)<<(short)form.second[2] * CMR / 2 << "\t"; //угол конца
+		//_____пишем логи целей
+		for (int i = 0; i < countForms;i+=3) {
+			out << std::setw(5) << i/3 << "\t\t";
+			out << std::setw(10) << ((formsReviews[i]) >> 4)*kvant + dataExchange[5] << "\t"; //дальность -> сдвинутое слово умножаем на квант + дальность начала зоны обнаружения
+			out << std::setw(10)<<(short)formsReviews[i+1] * CMR / 2 << "\t"; //угол начала
+			out << std::setw(10)<<(short)formsReviews[i+2] * CMR / 2 << "\t"; //угол конца
 			out << "\n";
 		}
 		out << "\n";
