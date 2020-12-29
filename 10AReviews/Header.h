@@ -119,7 +119,7 @@ int OUtoKK(uint16_t* word, unsigned short subAddr, unsigned short numWords, unsi
 	ResetEvent(hBcEvent);// обновляем событие
 
 	tmkgetevd(&tmkEvD);
-	if (!tmkEvD.bc.wResult) {
+	if (!tmkEvD.bc.wResult) {  //при успешном обмене в  bc.wResult будет 0
 		return 0;
 	}
 
@@ -137,7 +137,7 @@ int KKtoOU(uint16_t* word, unsigned short subAddr, unsigned short numWords) {
 	ResetEvent(hBcEvent);
 
 	tmkgetevd(&tmkEvD);
-	if (!tmkEvD.bc.wResult) {
+	if (!tmkEvD.bc.wResult) {  //при успешном обмене в  bc.wResult будет 0
 		return 0;
 	}
 

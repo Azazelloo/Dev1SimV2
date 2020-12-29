@@ -60,18 +60,14 @@ int main(int argc, char *argv[]) {
 		dataExchange[3] = tmpRK4;
 		system("pause"); // пауза для ручной синхронизации
 
-		while (revCounter< p_countReviews) {
+		while ((revCounter < p_countReviews) && !kbhit()) {
 			if (!SingleExchange()) {
-				//std::cout << "---Continuous exchange complete! review: "<< revCounter <<"\r";
 
 				//____анализ угла отклонения
-				wA= (short)dataExchangeRet[1]*CMR; //угол отклонения луча антенны в горизонтальной плоскости
-				wCK=(short)dataExchangeRet[2]*CMR; //угол сканирования
+				wA= static_cast<short>(dataExchangeRet[1])*CMR; //угол отклонения луча антенны в горизонтальной плоскости
+				wCK=static_cast<short>(dataExchangeRet[2])*CMR; //угол сканирования
 
-				std::cout << "---wA: " << wA << "\r";
-				//пишем логи углов
-				//std::cout << "wA = " << wA << "\twCK = " << wCK << std::endl;
-				//out<<std::fixed<<std::setprecision(5)<< blockNum << "\t\t" <<t.elapsed()<<"\t\t" << std::setprecision(5) << wA << "\t\t" << wCK << "\n";
+				std::cout << "---wA: " << wA << "\r"; 
 
 				if (wA <= -39 && (!(dataExchange[3] & 0x1000))) { //меняем направление движения антенны при достижении крайнего положения
 					out << "Review: "<<revCounter<<"\n";
